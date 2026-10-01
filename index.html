@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>He thong tuoi cay - Dashboard</title>
+  
+  <!-- FontAwesome Icons & Chart.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #111827;
+      --border-color: #1f2937;
+      --text-main: #f9fafb;
+      --text-sub: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand i { font-size: 28px; color: var(--accent-green); }
+    .brand h1 { font-size: 20px; margin: 0; }
+    .brand p { font-size: 12px; color: var(--text-sub); margin: 0; }
+
+    .grid-top {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-main { grid-template-columns: 1fr; }
+    }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 6px; }
+    
+    select, input {
+      width: 100%;
+      padding: 10px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    .mode-switch {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn-mode {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #374151;
+      background: #1f2937;
+      color: var(--text-sub);
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-mode.active-auto {
+      background: var(--accent-green);
+      color: white;
+      border-color: var(--accent-green);
+    }
+
+    .btn-mode.active-manual {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    .btn-pump {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .btn-pump-on { background: var(--accent-green); color: white; }
+    .btn-pump-off { background: var(--accent-red); color: white; }
+    
+    .btn-submit { 
+      background: #10b981; 
+      color: white; 
+      border: none; 
+      padding: 12px; 
+      border-radius: 8px; 
+      width: 100%; 
+      cursor: pointer; 
+      font-weight: bold; 
+      font-size: 15px;
+      margin-top: 5px;
+    }
+    .btn-submit:hover { background: #059669; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .badge-on { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+    .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .badge-info { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+    .badge-purple { background: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+    th { color: var(--text-sub); }
+  </style>
+</head>
+<body>
+
+  <!-- Header Top Bar -->
+  <div class="header">
+    <div class="brand">
+      <i class="fa-solid fa-droplet"></i>
+      <div>
+        <h1>He thong tuoi cay</h1>
+        
+      </div>
+    </div>
+    <div>
+      <span id="firebaseStatus" class="status-badge badge-off"><i class="fa-solid fa-circle"></i> Đang kết nối Firebase...</span>
+    </div>
+  </div>
+
+  <!-- 4 Ô Thống Kê Nhanh -->
+  <div class="grid-top">
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-header"><span>NHIỆT ĐỘ MÔI TRƯỜNG</span> <i class="fa-solid fa-temperature-half" style="color:var(--accent-orange)"></i></div>
+      <div class="card-value"><span id="tempVal">--</span> °C</div>
+    </div>
+
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-header"><span>ĐỘ ẨM ĐẤT / MÔI TRƯỜNG</span> <i class="fa-solid fa-droplet" style="color:var(--accent-blue)"></i></div>
+      <div class="card-value"><span id="humVal">--</span> %</div>
+    </div>
+
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-header"><span>TRẠNG THÁI MÁY BƠM</span> <i class="fa-solid fa-power-off"></i></div>
+      <div class="card-value" id="pumpText" style="color: var(--accent-red)">TẮT</div>
+    </div>
+
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-header"><span>CHẾ ĐỘ HOẠT ĐỘNG</span> <i class="fa-solid fa-robot"></i></div>
+      <div class="card-value" id="modeText" style="color:var(--accent-green); font-size: 20px;">TỰ ĐỘNG (AUTO)</div>
+    </div>
+  </div>
+
+  <!-- Khung Điều Khiển & Biểu Đồ Realtime -->
+  <div class="grid-main">
+    
+    <!-- Cài đặt & Điều khiển -->
+    <div class="card" style="margin-bottom:0;">
+      <h3 style="margin-top:0"><i class="fa-solid fa-sliders"></i> Chế Độ & Điều Khiển</h3>
+      
+      <!-- Chọn Chế độ Auto / Manual -->
+      <div class="form-group">
+        <label>Chọn chế độ vận hành:</label>
+        <div class="mode-switch">
+          <button id="btnAuto" class="btn-mode active-auto" onclick="setMode('auto')"><i class="fa-solid fa-robot"></i> Tự Động</button>
+          <button id="btnManual" class="btn-mode" onclick="setMode('manual')"><i class="fa-solid fa-hand"></i> Thủ Công</button>
+        </div>
+      </div>
+
+      <!-- Khung Bật/Tắt Thủ Công -->
+      <div id="manualControlSection" style="display: none; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 12px;">
+        <label style="font-weight: bold; color: var(--accent-blue); margin-bottom: 8px; display: block;">Điều khiển máy bơm thủ công:</label>
+        <button id="btnPumpToggle" class="btn-pump btn-pump-on" onclick="toggleManualPump()"><i class="fa-solid fa-power-off"></i> BẬT MÁY BƠM</button>
+      </div>
+
+      <!-- Khung Cài Đặt Ngưỡng Tự Động (Auto) -->
+      <div id="autoControlSection" style="border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 12px;">
+        <h4 style="margin: 0 0 12px 0; color: var(--text-main); font-size: 15px;"><i class="fa-solid fa-sliders"></i> Cài Đặt Ngưỡng Điều Khiển</h4>
+
+        <div class="form-group">
+          <label>Chọn thông số giám sát:</label>
+          <select id="sensorTypeSelect">
+            <option value="humidity">Độ ẩm (%)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Điều kiện so sánh:</label>
+          <select id="conditionSelect">
+            <option value="less">Nhỏ hơn (&lt;) - Bật khi thấp hơn ngưỡng</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Giá trị ngưỡng cài đặt (%):</label>
+          <input type="number" id="thresholdInput" value="40">
+        </div>
+
+        <button class="btn-submit" onclick="saveThreshold()"><i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Ngưỡng</button>
+      </div>
+    </div>
+
+    <!-- Biểu đồ Chart.js -->
+    <div class="card" style="margin-bottom:0;">
+      <h3 style="margin-top:0"><i class="fa-chart-line fa-solid"></i> Diễn Biến Theo Thời Gian Thực</h3>
+      <div style="height: 250px;">
+        <canvas id="realtimeChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BẢNG LỊCH SỬ 1: LỊCH SỬ TƯỚI CÂY (LƯU VĨNH VIỄN) -->
+  <div class="card">
+    <h3 style="margin-top:0; color: var(--accent-green);"><i class="fa-solid fa-faucet-drip"></i> Lịch Sử Tưới Cây</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>THỜI GIAN KÍCH HOẠT</th>
+          <th>CHẾ ĐỘ TƯỚI</th>
+          <th>THỜI LƯỢNG BƠM</th>
+          <th>TRẠNG THÁI</th>
+        </tr>
+      </thead>
+      <tbody id="wateringLogTable">
+        <tr>
+          <td colspan="4" style="text-align:center; color: var(--text-sub);">Đang tải lịch sử tưới cây...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BẢNG LỊCH SỬ 2: ĐO CẢM BIẾN (NHIỆT ĐỘ & ĐỘ ẨM) -->
+  <div class="card">
+    <h3 style="margin-top:0; color: var(--accent-blue);"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Đo Nhiệt Độ & Độ Ẩm</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>THỜI GIAN</th>
+          <th>LOẠI CẢM BIẾN</th>
+          <th>NHIỆT ĐỘ (°C)</th>
+          <th>ĐỘ ẨM (%)</th>
+        </tr>
+      </thead>
+      <tbody id="sensorLogTable">
+        <tr>
+          <td colspan="4" style="text-align:center; color: var(--text-sub);">Đang tải lịch sử đo cảm biến...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BẢNG LỊCH SỬ 3: SỰ KIỆN CẤU HÌNH -->
+  <div class="card">
+    <h3 style="margin-top:0; color: var(--accent-purple);"><i class="fa-solid fa-list-check"></i> Lịch Sử Sự Kiện Cấu Hình</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>THỜI GIAN</th>
+          <th>LOẠI SỰ KIỆN</th>
+          <th>CHI TIẾT THÔNG SỐ</th>
+          <th>KẾT QUẢ</th>
+        </tr>
+      </thead>
+      <tbody id="eventLogTable">
+        <tr>
+          <td colspan="4" style="text-align:center; color: var(--text-sub);">Đang tải lịch sử sự kiện...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // 1. Cấu hình Firebase Realtime
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMCRcYu3zT0F7wj-TxpteH3tx3ob06lpA",
+      authDomain: "tuoicay-7e380.firebaseapp.com",
+      databaseURL: "https://tuoicay-7e380-default-rtdb.firebaseio.com",
+      projectId: "tuoicay-7e380",
+      storageBucket: "tuoicay-7e380.firebasestorage.app",
+      messagingSenderId: "767670673612",
+      appId: "1:767670673612:web:5c3d6a3c9f21aa8a042269"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentMode = "auto";
+    let currentPumpState = "OFF";
+    let lastTemp = null;
+    let lastHum = null;
+    let pumpStartTime = null;
+
+    // Trạng thái kết nối Firebase
+    db.ref('.info/connected').on('value', (snapshot) => {
+      const connected = snapshot.val() === true;
+      const status = document.getElementById('firebaseStatus');
+      status.className = `status-badge ${connected ? 'badge-on' : 'badge-off'}`;
+      status.innerHTML = `<i class="fa-solid fa-circle"></i> ${connected ? 'Đã kết nối Firebase' : 'Mất kết nối Firebase'}`;
+    });
+
+    // Biểu đồ Realtime Chart.js
+    const ctx = document.getElementById('realtimeChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Độ ẩm (%)', borderColor: '#3b82f6', data: [], tension: 0.3 },
+          { label: 'Nhiệt độ (°C)', borderColor: '#f97316', data: [], tension: 0.3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+    });
+
+    // 2. Lắng nghe Dữ liệu Cảm biến & Bơm + Ghi log tưới nước tức thì
+    db.ref('sensor').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        if (data.temperature !== undefined) document.getElementById('tempVal').innerText = data.temperature;
+        if (data.humidity !== undefined) document.getElementById('humVal').innerText = data.humidity;
+        
+        const newPumpState = (data.pump_status === 'ON' || data.pump_status === true) ? "ON" : "OFF";
+        const pumpText = document.getElementById('pumpText');
+        const btnPump = document.getElementById('btnPumpToggle');
+
+        // LOGIC THEO DÕI & TỰ ĐỘNG LƯU LỊCH SỬ TƯỚI CÂY
+        if (newPumpState === "ON" && currentPumpState === "OFF") {
+          pumpStartTime = Date.now();
+        } else if (newPumpState === "OFF" && currentPumpState === "ON" && pumpStartTime) {
+          const durationSec = Math.round((Date.now() - pumpStartTime) / 1000);
+          const timeStr = new Date().toLocaleTimeString() + " " + new Date().toLocaleDateString('vi-VN');
+          
+          // Ghi lượt tưới vĩnh viễn lên Firebase
+          db.ref('watering_logs').push({
+            time: timeStr,
+            mode: (currentMode === 'auto') ? "Tự động (Auto)" : "Thủ công (Manual)",
+            duration: durationSec > 0 ? `${durationSec} giây` : "Vừa xong",
+            status: "Hoàn thành"
+          });
+          pumpStartTime = null;
+        }
+
+        currentPumpState = newPumpState;
+
+        if (currentPumpState === 'ON') {
+          pumpText.innerText = "ĐANG BẬT";
+          pumpText.style.color = "var(--accent-green)";
+          btnPump.className = "btn-pump btn-pump-off";
+          btnPump.innerHTML = '<i class="fa-solid fa-power-off"></i> TẮT MÁY BƠM';
+        } else {
+          pumpText.innerText = "TẮT";
+          pumpText.style.color = "var(--accent-red)";
+          btnPump.className = "btn-pump btn-pump-on";
+          btnPump.innerHTML = '<i class="fa-solid fa-power-off"></i> BẬT MÁY BƠM';
+        }
+
+        const nowStr = new Date().toLocaleTimeString();
+
+        // Đẩy dữ liệu vào biểu đồ
+        if (chart.data.labels.length > 10) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+          chart.data.datasets[1].data.shift();
+        }
+        chart.data.labels.push(nowStr);
+        chart.data.datasets[0].data.push(data.humidity || 0);
+        chart.data.datasets[1].data.push(data.temperature || 0);
+        chart.update();
+
+        // LƯU TỨC THÌ: Mỗi khi Nhiệt độ/Độ ẩm THAY ĐỔI -> Lưu dòng log mới ngay
+        if (data.temperature !== undefined && data.humidity !== undefined) {
+          if (data.temperature !== lastTemp || data.humidity !== lastHum) {
+            lastTemp = data.temperature;
+            lastHum = data.humidity;
+            
+            const timeStr = new Date().toLocaleTimeString() + " " + new Date().toLocaleDateString('vi-VN');
+            db.ref('sensor_logs').push({
+              time: timeStr,
+              sensor: "DHT11 & Cảm biến đất",
+              temp: data.temperature,
+              humidity: data.humidity
+            });
+          }
+        }
+      }
+    });
+
+    // 3. Đọc Chế độ Vận hành & Ngưỡng
+    db.ref('settings/mode').on('value', (snapshot) => {
+      const mode = snapshot.val() || 'auto';
+      currentMode = mode;
+      updateUIForMode(mode);
+    });
+
+    db.ref('settings/threshold').on('value', (snapshot) => {
+      if (snapshot.val() !== null) {
+        document.getElementById('thresholdInput').value = snapshot.val();
+      }
+    });
+
+    function updateUIForMode(mode) {
+      const btnAuto = document.getElementById('btnAuto');
+      const btnManual = document.getElementById('btnManual');
+      const modeText = document.getElementById('modeText');
+      const autoSection = document.getElementById('autoControlSection');
+      const manualSection = document.getElementById('manualControlSection');
+
+      if (mode === 'manual') {
+        btnAuto.className = 'btn-mode';
+        btnManual.className = 'btn-mode active-manual';
+        modeText.innerText = "THỦ CÔNG (MANUAL)";
+        modeText.style.color = "var(--accent-blue)";
+        manualSection.style.display = 'block';
+        autoSection.style.opacity = '0.5';
+      } else {
+        btnAuto.className = 'btn-mode active-auto';
+        btnManual.className = 'btn-mode';
+        modeText.innerText = "TỰ ĐỘNG (AUTO)";
+        modeText.style.color = "var(--accent-green)";
+        manualSection.style.display = 'none';
+        autoSection.style.opacity = '1';
+      }
+    }
+
+    function setMode(mode) {
+      db.ref('settings/mode').set(mode).then(() => {
+        pushEventLog("Đổi chế độ", "Chuyển sang " + (mode === 'auto' ? "Tự động" : "Thủ công"), "Thành công");
+      });
+    }
+
+    function toggleManualPump() {
+      if (currentMode !== 'manual') {
+        alert("Vui lòng bấm chọn chế độ THỦ CÔNG ở trên trước!");
+        return;
+      }
+      const nextState = (currentPumpState === 'ON') ? "OFF" : "ON";
+      
+      db.ref('settings/manual_pump').set(nextState);
+      db.ref('sensor/pump_status').set(nextState).then(() => {
+        pushEventLog("Thủ công", (nextState === 'ON' ? "Bật" : "Tắt") + " máy bơm từ Web", nextState === 'ON' ? "ĐANG BẬT" : "TẮT");
+      });
+    }
+
+    function saveThreshold() {
+      const val = parseFloat(document.getElementById('thresholdInput').value);
+      if (!Number.isFinite(val) || val < 0 || val > 100) {
+        alert('Vui lòng nhập ngưỡng từ 0 đến 100%.');
+        return;
+      }
+
+      db.ref('settings/threshold').set(val).then(() => {
+        alert('Đã cập nhật ngưỡng mới: ' + val + '%');
+        pushEventLog("Cài đặt ngưỡng", "Thay đổi ngưỡng độ ẩm thành " + val + "%", "Thành công");
+      });
+    }
+
+    function pushEventLog(event, detail, status) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString() + " " + now.toLocaleDateString('vi-VN');
+      db.ref('logs').push({
+        time: timeStr,
+        event: event,
+        detail: detail,
+        status: status
+      });
+    }
+
+    // 4. LOAD BẢNG LỊCH SỬ TƯỚI CÂY TỪ FIREBASE (LƯU VĨNH VIỄN)
+    db.ref('watering_logs').limitToLast(20).on('value', (snapshot) => {
+      const table = document.getElementById('wateringLogTable');
+      table.innerHTML = '';
+      const logs = [];
+      snapshot.forEach(child => logs.unshift(child.val()));
+
+      if (logs.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-sub);">Chưa có lịch sử tưới cây</td></tr>';
+        return;
+      }
+
+      logs.forEach(log => {
+        table.innerHTML += `<tr>
+          <td>${log.time || '--'}</td>
+          <td><span class="status-badge badge-purple">${log.mode || 'Tưới cây'}</span></td>
+          <td style="color: var(--accent-green); font-weight: bold;">${log.duration || '--'}</td>
+          <td><span class="status-badge badge-on">${log.status || 'Hoàn thành'}</span></td>
+        </tr>`;
+      });
+    });
+
+    // 5. LOAD BẢNG LỊCH SỬ ĐO CẢM BIẾN TỪ FIREBASE (LƯU VĨNH VIỄN)
+    db.ref('sensor_logs').limitToLast(20).on('value', (snapshot) => {
+      const table = document.getElementById('sensorLogTable');
+      table.innerHTML = '';
+      const logs = [];
+      snapshot.forEach(child => logs.unshift(child.val()));
+
+      if (logs.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-sub);">Chưa có lịch sử đo cảm biến</td></tr>';
+        return;
+      }
+
+      logs.forEach(log => {
+        table.innerHTML += `<tr>
+          <td>${log.time || '--'}</td>
+          <td><span class="status-badge badge-info">${log.sensor || 'Cảm biến'}</span></td>
+          <td style="color: var(--accent-orange); font-weight: bold;">${log.temp} °C</td>
+          <td style="color: var(--accent-blue); font-weight: bold;">${log.humidity} %</td>
+        </tr>`;
+      });
+    });
+
+    // 6. LOAD BẢNG LỊCH SỬ SỰ KIỆN TỪ FIREBASE (LƯU VĨNH VIỄN)
+    db.ref('logs').limitToLast(20).on('value', (snapshot) => {
+      const table = document.getElementById('eventLogTable');
+      table.innerHTML = '';
+      const logs = [];
+      snapshot.forEach(child => logs.unshift(child.val()));
+
+      if (logs.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-sub);">Chưa có lịch sử sự kiện</td></tr>';
+        return;
+      }
+
+      logs.forEach(log => {
+        const isSuccess = log.status === 'ĐANG BẬT' || log.status === 'BẬT' || log.status === 'Thành công';
+        const badgeClass = isSuccess ? 'badge-on' : 'badge-off';
+
+        table.innerHTML += `<tr>
+          <td>${log.time || '--'}</td>
+          <td>${log.event || '--'}</td>
+          <td>${log.detail || '--'}</td>
+          <td><span class="status-badge ${badgeClass}">${log.status || '--'}</span></td>
+        </tr>`;
+      });
+    });
+  </script>
+
+</body>
+</html>
